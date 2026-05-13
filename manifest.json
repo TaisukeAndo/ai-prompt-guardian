@@ -33,6 +33,7 @@
       "js": [
         "src/rules/patterns.js",
         "src/rules/detector.js",
+        "src/rules/masker.js",
         "src/content/interceptor.js"
       ],
       "run_at": "document_idle"

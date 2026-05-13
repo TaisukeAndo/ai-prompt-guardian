@@ -110,7 +110,9 @@ function findSubmitButton(target, config) {
 }
 
 // ─── 警告ダイアログ ───
-function showWarningDialog(result, onSend) {
+// callbacks: { onSend, onMask }
+function showWarningDialog(result, callbacks) {
+  const { onSend, onMask } = callbacks;
   document.getElementById("apg-dialog")?.remove();
   injectStyles();
 
@@ -122,7 +124,7 @@ function showWarningDialog(result, onSend) {
       <div class="apg-finding apg-${f.severity}">
         <span class="apg-badge">${f.severity === "error" ? "⛔" : "⚠️"}</span>
         <strong>${f.label}</strong>
-        <span class="apg-sample">${f.matches.map(maskText).join("、")}</span>
+        <span class="apg-sample">${f.matches.map(redactText).join("、")}</span>
       </div>`
     )
     .join("");
@@ -139,7 +141,8 @@ function showWarningDialog(result, onSend) {
       <p id="apg-desc">プロンプト内に以下の情報が含まれている可能性があります：</p>
       <div id="apg-findings">${findingsHTML}</div>
       <div id="apg-actions">
-        <button id="apg-cancel">キャンセル（修正する）</button>
+        <button id="apg-cancel">キャンセル</button>
+        <button id="apg-mask">🔒 情報を隠して送信</button>
         ${!hasError ? '<button id="apg-send">このまま送信</button>' : ""}
       </div>
     </div>
@@ -153,7 +156,10 @@ function showWarningDialog(result, onSend) {
   document.getElementById("apg-overlay").addEventListener("click", () => {
     dialog.remove();
   });
-
+  document.getElementById("apg-mask").addEventListener("click", () => {
+    dialog.remove();
+    if (onMask) onMask();
+  });
   if (!hasError) {
     document.getElementById("apg-send").addEventListener("click", () => {
       dialog.remove();
@@ -162,9 +168,40 @@ function showWarningDialog(result, onSend) {
   }
 }
 
-function maskText(text) {
+// ダイアログ内のサンプル表示用（部分伏字）
+function redactText(text) {
   if (text.length <= 4) return "****";
   return text.slice(0, 2) + "*".repeat(Math.min(text.length - 4, 6)) + text.slice(-2);
+}
+
+// ─── テキスト入力欄にマスク済みプロンプトを注入 ───
+function injectText(config, text) {
+  for (const sel of config.textSelectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+
+    el.focus();
+
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      // React等のフレームワーク対応: nativeなsetterを使ってstateを更新
+      const proto = el.tagName === "TEXTAREA"
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+      if (setter) setter.call(el, text);
+      el.dispatchEvent(new Event("input",  { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else {
+      // contenteditable (ProseMirror / Quill 等)
+      // execCommandはReact/Vueの合成イベントにも乗るため最も互換性が高い
+      document.execCommand("selectAll", false, null);
+      document.execCommand("insertText", false, text);
+    }
+
+    log("テキスト注入完了:", sel);
+    return true;
+  }
+  return false;
 }
 
 // ─── インターセプタ本体 ───
@@ -174,25 +211,39 @@ function attachInterceptor(config) {
 
   log("インターセプタ起動:", config.host);
 
+  function handleDetection(text, onProceed) {
+    const result = detectText(text);
+    if (!result.matched) { onProceed(); return; }
+
+    showWarningDialog(result, {
+      // 「このまま送信」
+      onSend: onProceed,
+      // 「情報を隠して送信」
+      onMask: () => {
+        const { maskedText, replacements } = maskPrompt(text);
+        const finalPrompt = buildFinalPrompt(maskedText, replacements);
+        injectText(config, finalPrompt);
+        // フレームワークのstate更新を待ってから送信
+        setTimeout(onProceed, 80);
+      },
+    });
+  }
+
   // 送信ボタン クリック
   document.addEventListener(
     "click",
     (e) => {
       const btn = findSubmitButton(e.target, config);
       if (!btn) return;
-
       if (bypassClick) { bypassClick = false; return; }
 
       const text = getPromptText(config);
       if (!text) return;
 
-      const result = detectText(text);
-      if (!result.matched) return;
-
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      showWarningDialog(result, () => {
+      handleDetection(text, () => {
         bypassClick = true;
         btn.click();
       });
@@ -208,24 +259,19 @@ function attachInterceptor(config) {
       const active = document.activeElement;
       if (!active) return;
 
-      // アクティブ要素がテキスト入力エリアか確認
       const isInputArea = config.textSelectors.some(
         (sel) => active.matches(sel) || !!active.closest(sel)
       );
       if (!isInputArea) return;
-
       if (bypassKeydown) { bypassKeydown = false; return; }
 
       const text = getPromptText(config);
       if (!text) return;
 
-      const result = detectText(text);
-      if (!result.matched) return;
-
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      showWarningDialog(result, () => {
+      handleDetection(text, () => {
         bypassKeydown = true;
         active.focus();
         active.dispatchEvent(
@@ -280,6 +326,12 @@ function injectStyles() {
       cursor: pointer; font-size: 14px;
     }
     #apg-cancel:hover { background: #f3f4f6; }
+    #apg-mask {
+      padding: 8px 16px; border-radius: 8px;
+      border: none; background: #3b82f6; color: #fff;
+      cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    #apg-mask:hover { background: #2563eb; }
     #apg-send {
       padding: 8px 16px; border-radius: 8px;
       border: none; background: #f59e0b; color: #fff;
