@@ -4,7 +4,9 @@
  * severity: "error"（送信ブロック推奨）/ "warning"（警告のみ）
  */
 
-export const RULES = [
+// content scriptとして複数ファイルで順番に読み込まれるため、exportは使わない
+// eslint-disable-next-line no-unused-vars
+const RULES = [
   // ─── 個人情報 ───
   {
     id: "phone_jp",

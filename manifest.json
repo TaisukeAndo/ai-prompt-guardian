@@ -18,7 +18,8 @@
   ],
 
   "background": {
-    "service_worker": "src/background/service_worker.js"
+    "service_worker": "src/background/service_worker.js",
+    "type": "module"
   },
 
   "content_scripts": [
@@ -30,7 +31,11 @@
         "https://claude.ai/*",
         "https://copilot.microsoft.com/*"
       ],
-      "js": ["src/content/interceptor.js"],
+      "js": [
+        "src/rules/patterns.js",
+        "src/rules/detector.js",
+        "src/content/interceptor.js"
+      ],
       "run_at": "document_idle"
     }
   ],

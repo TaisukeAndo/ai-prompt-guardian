@@ -1,9 +1,10 @@
 /**
  * Content Script
- * 各AIサービスの送信ボタン押下を捕捉し、プロンプトテキストを検査する
+ * 送信イベントを同期的に捕捉し、detectText()（patterns.js + detector.js で定義）で検査する。
+ * import/await を使わず同期処理にすることで preventDefault() が確実に機能する。
  */
 
-// ─── サービスごとのテキスト取得セレクタ定義 ───
+// ─── サービスごとのセレクタ定義 ───
 const SERVICE_CONFIGS = [
   {
     host: "chatgpt.com",
@@ -42,69 +43,13 @@ function getPromptText(config) {
   return el.innerText || el.value || el.textContent || "";
 }
 
-// ─── 送信ボタンへのインターセプト ───
-function attachInterceptor(config) {
-  document.addEventListener(
-    "click",
-    async (e) => {
-      const btn = e.target.closest(config.submitSelector);
-      if (!btn) return;
-
-      const text = getPromptText(config);
-      if (!text.trim()) return;
-
-      // Background Service Worker に検査を依頼
-      const result = await chrome.runtime.sendMessage({
-        type: "DETECT",
-        text,
-      });
-
-      if (!result.matched) return; // 問題なし → そのまま送信
-
-      // 問題あり → 送信を止めてダイアログ表示
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      showWarningDialog(result, btn);
-    },
-    true // キャプチャフェーズで捕捉
-  );
-
-  // Enterキーによる送信も捕捉
-  document.addEventListener(
-    "keydown",
-    async (e) => {
-      if (e.key !== "Enter" || e.shiftKey) return;
-      const active = document.activeElement;
-      if (!active) return;
-      const isInputArea =
-        active.matches(config.textSelector) ||
-        active.closest(config.textSelector);
-      if (!isInputArea) return;
-
-      const text = getPromptText(config);
-      if (!text.trim()) return;
-
-      const result = await chrome.runtime.sendMessage({
-        type: "DETECT",
-        text,
-      });
-
-      if (!result.matched) return;
-
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      showWarningDialog(result, active);
-    },
-    true
-  );
-}
-
-// ─── 警告ダイアログ ───
-function showWarningDialog(result, triggerEl) {
-  // 既存ダイアログがあれば削除
+// ─── 警告ダイアログを表示し、ユーザーの選択を返す ───
+// 送信を止めた後に呼ぶ（非同期UIだが、送信阻止は既に完了している）
+function showWarningDialog(result, onSend) {
   document.getElementById("apg-dialog")?.remove();
+  injectStyles();
 
-  const hasError = result.findings.some((f) => f.severity === "error");
+  const hasError = result.hasError;
 
   const findingsHTML = result.findings
     .map(
@@ -135,26 +80,22 @@ function showWarningDialog(result, triggerEl) {
     </div>
   `;
 
-  // スタイル注入
-  injectStyles();
   document.body.appendChild(dialog);
 
   document.getElementById("apg-cancel").addEventListener("click", () => {
     dialog.remove();
-    triggerEl?.focus();
+  });
+
+  document.getElementById("apg-overlay").addEventListener("click", () => {
+    dialog.remove();
   });
 
   if (!hasError) {
     document.getElementById("apg-send").addEventListener("click", () => {
       dialog.remove();
-      // 送信を再実行（インターセプトをバイパスするフラグ付き）
-      triggerEl?.click();
+      if (onSend) onSend();
     });
   }
-
-  document.getElementById("apg-overlay").addEventListener("click", () => {
-    dialog.remove();
-  });
 }
 
 function maskText(text) {
@@ -162,6 +103,74 @@ function maskText(text) {
   return text.slice(0, 2) + "*".repeat(Math.min(text.length - 4, 6)) + text.slice(-2);
 }
 
+// ─── インターセプタ本体（同期処理） ───
+function attachInterceptor(config) {
+  // 送信ボタン クリック
+  document.addEventListener(
+    "click",
+    (e) => {
+      const btn = e.target.closest(config.submitSelector);
+      if (!btn) return;
+
+      const text = getPromptText(config);
+      if (!text.trim()) return;
+
+      const result = detectText(text); // 同期呼び出し
+      if (!result.matched) return;
+
+      // ← この時点では同期なので確実に止められる
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      showWarningDialog(result, () => {
+        // 「このまま送信」選択時: APGフラグを立てて再クリック
+        btn.dataset.apgAllowed = "1";
+        btn.click();
+        delete btn.dataset.apgAllowed;
+      });
+    },
+    true
+  );
+
+  // Enter キー送信
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      const active = document.activeElement;
+      if (!active) return;
+      const isInputArea =
+        active.matches(config.textSelector) ||
+        !!active.closest(config.textSelector);
+      if (!isInputArea) return;
+
+      const text = getPromptText(config);
+      if (!text.trim()) return;
+
+      const result = detectText(text); // 同期呼び出し
+      if (!result.matched) return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      showWarningDialog(result, () => {
+        // 「このまま送信」選択時: フォーカスを戻してEnterを再発火
+        active.focus();
+        active.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Enter",
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+      });
+    },
+    true
+  );
+}
+
+// ─── スタイル注入 ───
 function injectStyles() {
   if (document.getElementById("apg-styles")) return;
   const style = document.createElement("style");
@@ -197,9 +206,7 @@ function injectStyles() {
     #apg-findings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .apg-finding {
       display: flex; align-items: flex-start; gap: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      line-height: 1.4;
+      padding: 8px 10px; border-radius: 8px; line-height: 1.4;
     }
     .apg-finding.apg-error   { background: #fff0f0; border: 1px solid #fcc; }
     .apg-finding.apg-warning { background: #fffbe6; border: 1px solid #ffe58f; }
@@ -207,23 +214,15 @@ function injectStyles() {
     .apg-sample { color: #888; font-size: 12px; display: block; margin-top: 2px; }
     #apg-actions { display: flex; gap: 10px; justify-content: flex-end; }
     #apg-cancel {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      background: #fff;
-      cursor: pointer;
-      font-size: 14px;
+      padding: 8px 16px; border-radius: 8px;
+      border: 1px solid #d1d5db; background: #fff;
+      cursor: pointer; font-size: 14px;
     }
     #apg-cancel:hover { background: #f3f4f6; }
     #apg-send {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      background: #f59e0b;
-      color: #fff;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
+      padding: 8px 16px; border-radius: 8px;
+      border: none; background: #f59e0b; color: #fff;
+      cursor: pointer; font-size: 14px; font-weight: 600;
     }
     #apg-send:hover { background: #d97706; }
   `;
@@ -231,9 +230,16 @@ function injectStyles() {
 }
 
 // ─── 初期化 ───
-const config = getCurrentConfig();
-if (config) {
-  // DOMが安定するまで少し待ってからアタッチ
+(function init() {
+  const config = getCurrentConfig();
+  if (!config) return;
+
+  // 送信ボタンが出現するまで待ってからアタッチ
+  if (document.querySelector(config.submitSelector)) {
+    attachInterceptor(config);
+    return;
+  }
+
   const observer = new MutationObserver(() => {
     if (document.querySelector(config.submitSelector)) {
       observer.disconnect();
@@ -241,9 +247,4 @@ if (config) {
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
-
-  // すでにDOMが存在する場合
-  if (document.querySelector(config.submitSelector)) {
-    attachInterceptor(config);
-  }
-}
+})();
