@@ -1,50 +1,115 @@
 /**
  * Content Script
- * 送信イベントを同期的に捕捉し、detectText()（patterns.js + detector.js で定義）で検査する。
- * import/await を使わず同期処理にすることで preventDefault() が確実に機能する。
+ * 送信イベントを同期的に捕捉し、detectText() で検査する。
+ * 各サービスにつき複数のセレクタ候補を順番に試すフォールバック方式。
  */
 
-// ─── サービスごとのセレクタ定義 ───
+// ─── サービスごとのセレクタ候補（上から順に試す）───
 const SERVICE_CONFIGS = [
   {
     host: "chatgpt.com",
-    textSelector: "#prompt-textarea",
-    submitSelector: 'button[data-testid="send-button"]',
+    textSelectors: [
+      "#prompt-textarea",
+      'div[contenteditable="true"]',
+    ],
+    submitSelectors: [
+      'button[data-testid="send-button"]',
+      'button[aria-label="Send prompt"]',
+    ],
   },
   {
     host: "chat.openai.com",
-    textSelector: "#prompt-textarea",
-    submitSelector: 'button[data-testid="send-button"]',
+    textSelectors: [
+      "#prompt-textarea",
+      'div[contenteditable="true"]',
+    ],
+    submitSelectors: [
+      'button[data-testid="send-button"]',
+      'button[aria-label="Send prompt"]',
+    ],
   },
   {
     host: "gemini.google.com",
-    textSelector: "rich-textarea .ql-editor",
-    submitSelector: 'button[aria-label="送信"]',
+    textSelectors: [
+      ".ql-editor",
+      "rich-textarea .ql-editor",
+      '[contenteditable="true"]',
+      '[role="textbox"]',
+    ],
+    submitSelectors: [
+      "button.send-button",
+      'button[aria-label="Send message"]',
+      'button[aria-label="送信"]',
+      'button[data-mat-icon-name="send"]',
+      'button[jsname]',  // Gemini特有の属性で絞る最終手段
+    ],
   },
   {
     host: "claude.ai",
-    textSelector: 'div[contenteditable="true"]',
-    submitSelector: 'button[aria-label="Send Message"]',
+    textSelectors: [
+      ".ProseMirror",
+      '[contenteditable="true"][data-testid]',
+      '[contenteditable="true"]',
+    ],
+    submitSelectors: [
+      'button[aria-label="Send message"]',
+      'button[aria-label="Send Message"]',
+      'button[data-testid="send-button"]',
+      'button[type="submit"]',
+    ],
   },
   {
     host: "copilot.microsoft.com",
-    textSelector: 'textarea[placeholder]',
-    submitSelector: 'button[aria-label="Submit"]',
+    textSelectors: [
+      "#userInput",
+      'textarea',
+      '[contenteditable="true"]',
+    ],
+    submitSelectors: [
+      'button[aria-label="Submit"]',
+      'button[aria-label="Send"]',
+      'button[type="submit"]',
+    ],
   },
 ];
+
+// ─── セレクタのデバッグ用ログ（DevToolsのConsoleで確認可能）───
+const DEBUG = false;
+function log(...args) {
+  if (DEBUG) console.log("[APG]", ...args);
+}
 
 function getCurrentConfig() {
   return SERVICE_CONFIGS.find((c) => location.hostname.includes(c.host));
 }
 
+// 複数セレクタを順番に試してテキストを取得
 function getPromptText(config) {
-  const el = document.querySelector(config.textSelector);
-  if (!el) return "";
-  return el.innerText || el.value || el.textContent || "";
+  for (const sel of config.textSelectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const text = (el.innerText || el.value || el.textContent || "").trim();
+    if (text) {
+      log(`テキスト取得: ${sel} → ${text.slice(0, 30)}...`);
+      return text;
+    }
+  }
+  return "";
 }
 
-// ─── 警告ダイアログを表示し、ユーザーの選択を返す ───
-// 送信を止めた後に呼ぶ（非同期UIだが、送信阻止は既に完了している）
+// クリックされた要素が送信ボタンかどうかを複数セレクタで判定
+function findSubmitButton(target, config) {
+  for (const sel of config.submitSelectors) {
+    const btn = target.closest(sel);
+    if (btn) {
+      log(`送信ボタン検出: ${sel}`);
+      return btn;
+    }
+  }
+  return null;
+}
+
+// ─── 警告ダイアログ ───
 function showWarningDialog(result, onSend) {
   document.getElementById("apg-dialog")?.remove();
   injectStyles();
@@ -85,7 +150,6 @@ function showWarningDialog(result, onSend) {
   document.getElementById("apg-cancel").addEventListener("click", () => {
     dialog.remove();
   });
-
   document.getElementById("apg-overlay").addEventListener("click", () => {
     dialog.remove();
   });
@@ -103,27 +167,24 @@ function maskText(text) {
   return text.slice(0, 2) + "*".repeat(Math.min(text.length - 4, 6)) + text.slice(-2);
 }
 
-// ─── インターセプタ本体（同期処理） ───
+// ─── インターセプタ本体 ───
 function attachInterceptor(config) {
-  // 「このまま送信」後の再発火をスキップするフラグ
   let bypassClick = false;
   let bypassKeydown = false;
+
+  log("インターセプタ起動:", config.host);
 
   // 送信ボタン クリック
   document.addEventListener(
     "click",
     (e) => {
-      const btn = e.target.closest(config.submitSelector);
+      const btn = findSubmitButton(e.target, config);
       if (!btn) return;
 
-      // 「このまま送信」による再クリックはスキップ
-      if (bypassClick) {
-        bypassClick = false;
-        return;
-      }
+      if (bypassClick) { bypassClick = false; return; }
 
       const text = getPromptText(config);
-      if (!text.trim()) return;
+      if (!text) return;
 
       const result = detectText(text);
       if (!result.matched) return;
@@ -146,19 +207,17 @@ function attachInterceptor(config) {
       if (e.key !== "Enter" || e.shiftKey) return;
       const active = document.activeElement;
       if (!active) return;
-      const isInputArea =
-        active.matches(config.textSelector) ||
-        !!active.closest(config.textSelector);
+
+      // アクティブ要素がテキスト入力エリアか確認
+      const isInputArea = config.textSelectors.some(
+        (sel) => active.matches(sel) || !!active.closest(sel)
+      );
       if (!isInputArea) return;
 
-      // 「このまま送信」による再発火はスキップ
-      if (bypassKeydown) {
-        bypassKeydown = false;
-        return;
-      }
+      if (bypassKeydown) { bypassKeydown = false; return; }
 
       const text = getPromptText(config);
-      if (!text.trim()) return;
+      if (!text) return;
 
       const result = detectText(text);
       if (!result.matched) return;
@@ -171,10 +230,7 @@ function attachInterceptor(config) {
         active.focus();
         active.dispatchEvent(
           new KeyboardEvent("keydown", {
-            key: "Enter",
-            bubbles: true,
-            cancelable: true,
-            composed: true,
+            key: "Enter", bubbles: true, cancelable: true, composed: true,
           })
         );
       });
@@ -195,24 +251,16 @@ function injectStyles() {
       z-index: 2147483646;
     }
     #apg-modal {
-      position: fixed;
-      top: 50%; left: 50%;
+      position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: #fff;
-      border-radius: 12px;
-      padding: 24px;
-      width: 420px;
-      max-width: 90vw;
+      background: #fff; border-radius: 12px; padding: 24px;
+      width: 420px; max-width: 90vw;
       box-shadow: 0 8px 32px rgba(0,0,0,0.2);
       z-index: 2147483647;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 14px;
-      color: #1a1a1a;
+      font-size: 14px; color: #1a1a1a;
     }
-    #apg-header {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 12px;
-    }
+    #apg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
     #apg-icon { font-size: 22px; }
     #apg-title { font-size: 16px; font-weight: 700; }
     #apg-desc { margin: 0 0 12px; color: #555; }
@@ -247,17 +295,24 @@ function injectStyles() {
   const config = getCurrentConfig();
   if (!config) return;
 
-  // 送信ボタンが出現するまで待ってからアタッチ
-  if (document.querySelector(config.submitSelector)) {
-    attachInterceptor(config);
-    return;
-  }
+  let attached = false;
 
-  const observer = new MutationObserver(() => {
-    if (document.querySelector(config.submitSelector)) {
-      observer.disconnect();
+  function tryAttach() {
+    if (attached) return;
+    // いずれかの送信ボタンがDOMに存在すればアタッチ
+    const found = config.submitSelectors.some(
+      (sel) => !!document.querySelector(sel)
+    );
+    if (found) {
+      attached = true;
       attachInterceptor(config);
     }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  tryAttach();
+
+  if (!attached) {
+    const observer = new MutationObserver(tryAttach);
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 })();
