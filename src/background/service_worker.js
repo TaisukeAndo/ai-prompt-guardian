@@ -1,15 +1,10 @@
 /**
  * Background Service Worker
- * Content Script からの検査リクエストを受け取り、検知結果を返す
- * 検知処理はここで完結（外部通信なし）
+ * 検知処理は Content Script 内で同期実行されるため、
+ * Service Worker 側では検知ロジックを持たない。
+ * 将来的なログ記録・設定管理の拡張ポイントとして存在する。
  */
 
-import { detectText } from "../rules/detector.js";
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "DETECT") {
-    const result = detectText(message.text);
-    sendResponse(result);
-    return true; // 非同期レスポンスを許可
-  }
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("AI Prompt Guardian installed.");
 });
