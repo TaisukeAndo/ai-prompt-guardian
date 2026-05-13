@@ -105,6 +105,10 @@ function maskText(text) {
 
 // ─── インターセプタ本体（同期処理） ───
 function attachInterceptor(config) {
+  // 「このまま送信」後の再発火をスキップするフラグ
+  let bypassClick = false;
+  let bypassKeydown = false;
+
   // 送信ボタン クリック
   document.addEventListener(
     "click",
@@ -112,21 +116,24 @@ function attachInterceptor(config) {
       const btn = e.target.closest(config.submitSelector);
       if (!btn) return;
 
+      // 「このまま送信」による再クリックはスキップ
+      if (bypassClick) {
+        bypassClick = false;
+        return;
+      }
+
       const text = getPromptText(config);
       if (!text.trim()) return;
 
-      const result = detectText(text); // 同期呼び出し
+      const result = detectText(text);
       if (!result.matched) return;
 
-      // ← この時点では同期なので確実に止められる
       e.preventDefault();
       e.stopImmediatePropagation();
 
       showWarningDialog(result, () => {
-        // 「このまま送信」選択時: APGフラグを立てて再クリック
-        btn.dataset.apgAllowed = "1";
+        bypassClick = true;
         btn.click();
-        delete btn.dataset.apgAllowed;
       });
     },
     true
@@ -144,17 +151,23 @@ function attachInterceptor(config) {
         !!active.closest(config.textSelector);
       if (!isInputArea) return;
 
+      // 「このまま送信」による再発火はスキップ
+      if (bypassKeydown) {
+        bypassKeydown = false;
+        return;
+      }
+
       const text = getPromptText(config);
       if (!text.trim()) return;
 
-      const result = detectText(text); // 同期呼び出し
+      const result = detectText(text);
       if (!result.matched) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
 
       showWarningDialog(result, () => {
-        // 「このまま送信」選択時: フォーカスを戻してEnterを再発火
+        bypassKeydown = true;
         active.focus();
         active.dispatchEvent(
           new KeyboardEvent("keydown", {
