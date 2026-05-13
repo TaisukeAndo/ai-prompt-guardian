@@ -24,11 +24,21 @@
     </label>
   </div>
 
-  <!-- ルール設定 -->
+  <!-- 重要ルール（常時表示） -->
   <div id="rules-section">
-    <div class="section-title">検知ルール</div>
-    <div id="rule-list">
-      <!-- popup.js が動的に生成 -->
+    <div class="section-title">重要な検知ルール</div>
+    <div id="rule-list-primary"></div>
+  </div>
+
+  <!-- 詳細設定（折りたたみ） -->
+  <div id="detail-section">
+    <button id="detail-toggle" aria-expanded="false">
+      <span id="detail-label">詳細設定を表示</span>
+      <span id="detail-chevron">›</span>
+    </button>
+    <div id="detail-body">
+      <div class="section-title">その他の検知ルール</div>
+      <div id="rule-list-secondary"></div>
     </div>
   </div>
 

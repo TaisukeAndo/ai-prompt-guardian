@@ -39,8 +39,7 @@ body {
 #master-section.disabled #master-status-text { color: #94a3b8; }
 #master-status-sub { font-size: 11px; color: #64748b; }
 
-/* ─── ルール一覧 ─── */
-#rules-section { padding-bottom: 4px; }
+/* ─── ルール共通 ─── */
 .section-title {
   padding: 10px 16px 4px;
   font-size: 10px;
@@ -49,7 +48,6 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-#rule-list { display: flex; flex-direction: column; }
 .rule-row {
   display: flex;
   align-items: center;
@@ -60,19 +58,51 @@ body {
 }
 .rule-row:last-child { border-bottom: none; }
 .rule-row:hover { background: #f8fafc; }
-.rule-row.disabled { opacity: 0.4; }
+.rule-row.rule-off { opacity: 0.4; }
 
 .rule-info { display: flex; align-items: center; gap: 6px; }
 .rule-badge { font-size: 13px; }
 .rule-label { font-size: 12px; color: #334155; }
-.severity-tag {
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 4px;
+
+/* ─── 詳細設定トグルボタン ─── */
+#detail-section { border-top: 1px solid #e2e8f0; }
+
+#detail-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #475569;
   font-weight: 600;
+  transition: background 0.15s;
 }
-.severity-tag.error   { background: #fee2e2; color: #dc2626; }
-.severity-tag.warning { background: #fef3c7; color: #d97706; }
+#detail-toggle:hover { background: #f1f5f9; }
+
+#detail-chevron {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.22s ease;
+  transform: rotate(0deg);
+  display: inline-block;
+}
+#detail-toggle[aria-expanded="true"] #detail-chevron {
+  transform: rotate(90deg);
+}
+
+/* ─── 折りたたみ本体（アニメーション） ─── */
+#detail-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+#detail-body.open {
+  max-height: 400px;
+}
 
 /* ─── トグルスイッチ ─── */
 .toggle {
@@ -108,16 +138,8 @@ body {
 .toggle input:disabled + .slider { cursor: not-allowed; opacity: 0.5; }
 
 /* 大きいトグル（マスター用） */
-.toggle-lg {
-  width: 46px;
-  height: 26px;
-}
-.toggle-lg .slider::before {
-  height: 18px;
-  width: 18px;
-  left: 4px;
-  bottom: 4px;
-}
+.toggle-lg { width: 46px; height: 26px; }
+.toggle-lg .slider::before { height: 18px; width: 18px; left: 4px; bottom: 4px; }
 .toggle-lg input:checked + .slider::before { transform: translateX(20px); }
 
 /* ─── フッター ─── */
