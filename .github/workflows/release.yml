@@ -1,0 +1,66 @@
+name: Release
+
+# v* タグの push をトリガーに実行
+# 例: git tag v0.2.0 && git push origin v0.2.0
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # GitHub Release の作成に必要
+
+    steps:
+      # ─── チェックアウト ───
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ─── バージョン番号をタグから取得 ───
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      # ─── manifest.json のバージョンをタグに合わせて更新 ───
+      - name: Sync manifest version
+        run: |
+          jq '.version = "${{ steps.version.outputs.VERSION }}"' manifest.json \
+            > manifest.tmp.json && mv manifest.tmp.json manifest.json
+          echo "manifest version: $(jq -r .version manifest.json)"
+
+      # ─── 拡張機能の zip を作成 ───
+      - name: Build zip
+        run: |
+          zip -r ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip . \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "*.md" \
+            --exclude "icons/icon.svg"
+
+      # ─── GitHub Release を作成して zip を添付 ───
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.VERSION }}"
+          files: ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true  # コミット履歴からリリースノートを自動生成
+
+      # ─── Chrome Web Store にアップロード（シークレット設定後に有効化） ───
+      # 以下は Chrome Web Store の開発者登録・Extension ID 取得後に有効化する
+      # 必要なシークレット:
+      #   CHROME_CLIENT_ID     - Google Cloud Console の OAuth2 クライアント ID
+      #   CHROME_CLIENT_SECRET - 同クライアントシークレット
+      #   CHROME_REFRESH_TOKEN - OAuth2 リフレッシュトークン（取得方法は README 参照）
+      #   CHROME_EXTENSION_ID  - Web Store の Extension ID
+      #
+      # - name: Upload to Chrome Web Store
+      #   uses: fregante/chrome-webstore-upload-action@v2
+      #   with:
+      #     extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+      #     client-id: ${{ secrets.CHROME_CLIENT_ID }}
+      #     client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+      #     refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+      #     zip-path: ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip
+      #     publish: true
