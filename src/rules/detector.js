@@ -3,12 +3,16 @@
 /**
  * テキストを検査して検知結果を返す
  * @param {string} text
+ * @param {Object|null} enabledRules - { ruleId: boolean } の設定マップ。null なら全ルール有効
  * @returns {{ matched: boolean, hasError: boolean, findings: Array }}
  */
-function detectText(text) { // eslint-disable-line no-unused-vars
+function detectText(text, enabledRules) { // eslint-disable-line no-unused-vars
   const findings = [];
 
   for (const rule of RULES) {
+    // 設定で無効化されているルールはスキップ
+    if (enabledRules && enabledRules[rule.id] === false) continue;
+
     const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
     const matches = [...text.matchAll(regex)].map((m) => m[0]);
     if (matches.length > 0) {

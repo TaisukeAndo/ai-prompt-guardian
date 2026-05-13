@@ -2,38 +2,38 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Prompt Guardian</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+
   <div id="header">
     <span id="logo">🛡️</span>
     <span id="title">AI Prompt Guardian</span>
   </div>
 
-  <div id="status-section">
-    <div id="status-badge" class="active">✅ 保護中</div>
-    <p id="status-desc">AIへの送信前にプロンプトを検査しています</p>
+  <!-- マスタートグル -->
+  <div id="master-section">
+    <div id="master-label">
+      <span id="master-status-text">保護中</span>
+      <span id="master-status-sub">AIへの送信前に検査します</span>
+    </div>
+    <label class="toggle toggle-lg">
+      <input type="checkbox" id="master-toggle" checked />
+      <span class="slider"></span>
+    </label>
   </div>
 
-  <div id="section-title">検知対象</div>
-  <ul id="rule-list">
-    <li>⛔ 電話番号・生年月日・クレジットカード番号</li>
-    <li>⛔ APIキー（AWS / GitHub / Slack）</li>
-    <li>⛔ パスワード記載</li>
-    <li>⚠️ メールアドレス・郵便番号</li>
-    <li>⚠️ 氏名（様・さん付き）</li>
-  </ul>
-
-  <div id="section-title">対応サービス</div>
-  <ul id="service-list">
-    <li>ChatGPT</li>
-    <li>Gemini</li>
-    <li>Claude.ai</li>
-    <li>Microsoft Copilot</li>
-  </ul>
+  <!-- ルール設定 -->
+  <div id="rules-section">
+    <div class="section-title">検知ルール</div>
+    <div id="rule-list">
+      <!-- popup.js が動的に生成 -->
+    </div>
+  </div>
 
   <div id="footer">v0.1.0 — データはローカルのみで処理</div>
+
+  <script src="popup.js"></script>
 </body>
 </html>

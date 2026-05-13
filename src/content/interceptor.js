@@ -212,7 +212,10 @@ function attachInterceptor(config) {
   log("インターセプタ起動:", config.host);
 
   function handleDetection(text, onProceed) {
-    const result = detectText(text);
+    // マスター OFF の場合はそのまま送信
+    if (!__APGSettings.enabled) { onProceed(); return; }
+
+    const result = detectText(text, __APGSettings.rules);
     if (!result.matched) { onProceed(); return; }
 
     showWarningDialog(result, {
