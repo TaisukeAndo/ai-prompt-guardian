@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Prompt Guardian</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="header">
+    <span id="logo">🛡️</span>
+    <span id="title">AI Prompt Guardian</span>
+  </div>
+
+  <div id="status-section">
+    <div id="status-badge" class="active">✅ 保護中</div>
+    <p id="status-desc">AIへの送信前にプロンプトを検査しています</p>
+  </div>
+
+  <div id="section-title">検知対象</div>
+  <ul id="rule-list">
+    <li>⛔ 電話番号・生年月日・クレジットカード番号</li>
+    <li>⛔ APIキー（AWS / GitHub / Slack）</li>
+    <li>⛔ パスワード記載</li>
+    <li>⚠️ メールアドレス・郵便番号</li>
+    <li>⚠️ 氏名（様・さん付き）</li>
+  </ul>
+
+  <div id="section-title">対応サービス</div>
+  <ul id="service-list">
+    <li>ChatGPT</li>
+    <li>Gemini</li>
+    <li>Claude.ai</li>
+    <li>Microsoft Copilot</li>
+  </ul>
+
+  <div id="footer">v0.1.0 — データはローカルのみで処理</div>
+</body>
+</html>

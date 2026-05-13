@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <path d="M64 8 L112 28 L112 68 C112 94 90 116 64 122 C38 116 16 94 16 68 L16 28 Z"
+        fill="#1e293b"/>
+  <path d="M64 18 L104 35 L104 68 C104 90 85 109 64 115 C43 109 24 90 24 68 L24 35 Z"
+        fill="#22c55e"/>
+  <text x="64" y="82" font-family="Arial" font-size="52" font-weight="bold"
+        fill="white" text-anchor="middle">G</text>
+</svg>
