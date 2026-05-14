@@ -87,27 +87,27 @@ function findSubmitButton(target, config) {
     testId.includes("send") ||
     testId.includes("submit") ||
     title.includes("send") ||
-    title.includes("送信") ||
-    btn.type === "submit";
+    title.includes("送信");
 
   return isSendLike ? btn : null;
 }
 
 // ─── ボタン再検索（ダイアログ後: React 再レンダリングでステール参照を回避）───
 function findFreshSubmitButton(config) {
+  const dialog = document.getElementById("apg-dialog");
   for (const sel of config.submitSelectors) {
     const btn = document.querySelector(sel);
-    if (btn) return btn;
+    if (btn && !dialog?.contains(btn)) return btn;
   }
   for (const btn of document.querySelectorAll('button, [role="button"]')) {
+    if (dialog?.contains(btn)) continue; // ダイアログ内は除外
     const ariaLabel = (btn.getAttribute("aria-label") || "").toLowerCase();
     const testId    = (btn.dataset.testid || "").toLowerCase();
     const title     = (btn.getAttribute("title") || "").toLowerCase();
     if (
       ariaLabel.includes("send") || ariaLabel.includes("送信") || ariaLabel.includes("submit") ||
       testId.includes("send")    || testId.includes("submit") ||
-      title.includes("send")     || title.includes("送信") ||
-      btn.type === "submit"
+      title.includes("send")     || title.includes("送信")
     ) return btn;
   }
   return null;
@@ -231,6 +231,9 @@ function attachInterceptor(config) {
 
   // ─── クリック ───
   document.addEventListener("click", (e) => {
+    // 自分のダイアログ内のクリックは処理しない
+    if (e.target.closest("#apg-dialog")) return;
+
     const btn = findSubmitButton(e.target, config);
     if (!btn) return;
 
