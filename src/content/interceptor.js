@@ -259,6 +259,7 @@ function attachInterceptor(config) {
     "keydown",
     (e) => {
       if (e.key !== "Enter" || e.shiftKey) return;
+      if (e.isComposing) return; // IME変換確定のEnterは無視
       const active = document.activeElement;
       if (!active) return;
 
