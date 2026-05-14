@@ -1,18 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- Background -->
+  <!-- Background: dark navy -->
   <rect width="128" height="128" rx="20" fill="#0f172a"/>
 
-  <!-- Chat bubble body -->
-  <rect x="12" y="10" width="78" height="70" rx="12" fill="#2563eb"/>
+  <!-- Chat bubble body: white -->
+  <rect x="11" y="9" width="79" height="69" rx="13" fill="white"/>
+  <!-- Bubble tail -->
+  <polygon points="18,78 9,100 33,78" fill="white"/>
+  <rect x="18" y="75" width="15" height="6" fill="white"/>
 
-  <!-- Bubble tail (bottom-left) -->
-  <polygon points="16,80 8,100 33,80" fill="#2563eb"/>
-  <rect x="16" y="77" width="17" height="6" fill="#2563eb"/>
+  <!-- Text lines: navy (cutout — background colour only) -->
+  <rect x="23" y="26.8" width="45" height="6.4" rx="3.2" fill="#0f172a"/>
+  <rect x="23" y="40.8" width="59" height="6.4" rx="3.2" fill="#0f172a"/>
+  <rect x="23" y="54.8" width="32" height="6.4" rx="3.2" fill="#0f172a"/>
 
-  <!-- Badge gap ring (navy circle = background showing through) -->
-  <circle cx="92" cy="94" r="22" fill="#0f172a"/>
+  <!-- Badge gap ring: navy circle -->
+  <circle cx="91" cy="93" r="29" fill="#0f172a"/>
 
-  <!-- Shield badge (single blue) -->
-  <polygon points="92,82 102,90.6 102,95.2 99.6,101.7 92,106 84.4,101.7 82,95.2 82,90.6"
-           fill="#2563eb"/>
+  <!-- Shield badge: white -->
+  <polygon points="91,68 113,76 113,100.5 104.2,115.5 91,118 77.8,115.5 69,100.5 69,76"
+           fill="white"/>
 </svg>
