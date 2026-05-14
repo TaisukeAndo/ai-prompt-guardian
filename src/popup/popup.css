@@ -1,78 +1,203 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Material Symbols 共通設定 */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
 body {
-  width: 300px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  width: 340px;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Segoe UI", sans-serif;
   font-size: 13px;
-  color: #1a1a1a;
-  background: #fff;
+  color: #1e293b;
+  background: #f1f5f9;
 }
 
 /* ─── ヘッダー ─── */
 #header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  background: #1e293b;
+  gap: 10px;
+  padding: 13px 16px;
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3a6e 100%);
   color: #fff;
 }
-#logo { font-size: 18px; }
-#title { font-size: 14px; font-weight: 700; }
+
+#header-icon {
+  font-size: 26px;
+  color: #93c5fd;
+  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  flex-shrink: 0;
+}
+
+#header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+#title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+#subtitle {
+  font-size: 10px;
+  color: #93c5fd;
+  opacity: 0.75;
+}
+
+#version {
+  font-size: 10px;
+  color: #64748b;
+  background: rgba(255,255,255,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 
 /* ─── マスタートグル ─── */
 #master-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 12px 16px;
   background: #f0fdf4;
-  border-bottom: 1px solid #d1fae5;
-  transition: background 0.2s;
+  border-bottom: 2px solid #bbf7d0;
+  transition: background 0.25s, border-color 0.25s;
 }
+
 #master-section.disabled {
   background: #f8fafc;
   border-color: #e2e8f0;
 }
-#master-label { display: flex; flex-direction: column; gap: 2px; }
-#master-status-text { font-size: 14px; font-weight: 700; color: #16a34a; }
-#master-section.disabled #master-status-text { color: #94a3b8; }
-#master-status-sub { font-size: 11px; color: #64748b; }
+
+#master-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#master-icon {
+  font-size: 30px;
+  color: #16a34a;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  transition: color 0.25s;
+}
+
+#master-section.disabled #master-icon {
+  color: #94a3b8;
+}
+
+#master-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#master-status-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #16a34a;
+  transition: color 0.25s;
+}
+
+#master-section.disabled #master-status-text {
+  color: #94a3b8;
+}
+
+#master-status-sub {
+  font-size: 11px;
+  color: #64748b;
+}
 
 /* ─── ルール共通 ─── */
+#rules-section {
+  background: #fff;
+  margin-top: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
 .section-title {
-  padding: 10px 16px 4px;
+  padding: 8px 16px 4px;
   font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
+
 .rule-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.15s;
 }
-.rule-row:last-child { border-bottom: none; }
-.rule-row:hover { background: #f8fafc; }
-.rule-row.rule-off { opacity: 0.4; }
 
-.rule-info { display: flex; align-items: center; gap: 6px; }
-.rule-badge { font-size: 13px; }
-.rule-label { font-size: 12px; color: #334155; }
+.rule-row:last-child {
+  border-bottom: none;
+}
 
-/* ─── 詳細設定トグルボタン ─── */
-#detail-section { border-top: 1px solid #e2e8f0; }
+.rule-row:hover {
+  background: #f8fafc;
+}
+
+.rule-row.rule-off {
+  opacity: 0.4;
+}
+
+.rule-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rule-badge {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.error-icon {
+  color: #dc2626;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.warning-icon {
+  color: #d97706;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.rule-label {
+  font-size: 12px;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* ─── 詳細設定 ─── */
+#detail-section {
+  background: #fff;
+  margin-top: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
 
 #detail-toggle {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 9px 16px;
+  padding: 10px 16px;
   background: #f8fafc;
   border: none;
   cursor: pointer;
@@ -80,26 +205,43 @@ body {
   color: #475569;
   font-weight: 600;
   transition: background 0.15s;
+  letter-spacing: 0.01em;
 }
-#detail-toggle:hover { background: #f1f5f9; }
+
+#detail-toggle:hover {
+  background: #f1f5f9;
+}
+
+#detail-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#detail-icon {
+  font-size: 16px;
+  color: #94a3b8;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
 
 #detail-chevron {
-  font-size: 16px;
-  line-height: 1;
+  font-size: 20px;
+  color: #94a3b8;
   transition: transform 0.22s ease;
-  transform: rotate(0deg);
-  display: inline-block;
-}
-#detail-toggle[aria-expanded="true"] #detail-chevron {
-  transform: rotate(90deg);
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
 }
 
-/* ─── 折りたたみ本体（アニメーション） ─── */
+#detail-toggle[aria-expanded="true"] #detail-chevron {
+  transform: rotate(180deg);
+}
+
+/* ─── 折りたたみアニメーション ─── */
 #detail-body {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease;
 }
+
 #detail-body.open {
   max-height: 400px;
 }
@@ -108,24 +250,32 @@ body {
 .toggle {
   position: relative;
   display: inline-block;
-  width: 36px;
-  height: 20px;
+  width: 38px;
+  height: 22px;
   flex-shrink: 0;
 }
-.toggle input { opacity: 0; width: 0; height: 0; }
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
 .slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
   background: #cbd5e1;
-  border-radius: 20px;
+  border-radius: 22px;
   transition: background 0.2s;
 }
+
 .slider::before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
   background: #fff;
@@ -133,20 +283,41 @@ body {
   transition: transform 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.toggle input:checked + .slider { background: #22c55e; }
-.toggle input:checked + .slider::before { transform: translateX(16px); }
-.toggle input:disabled + .slider { cursor: not-allowed; opacity: 0.5; }
+
+.toggle input:checked + .slider {
+  background: #16a34a;
+}
+
+.toggle input:checked + .slider::before {
+  transform: translateX(16px);
+}
+
+.toggle input:disabled + .slider {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 
 /* 大きいトグル（マスター用） */
-.toggle-lg { width: 46px; height: 26px; }
-.toggle-lg .slider::before { height: 18px; width: 18px; left: 4px; bottom: 4px; }
+.toggle-lg { width: 48px; height: 28px; }
+.toggle-lg .slider::before { height: 20px; width: 20px; left: 4px; bottom: 4px; }
 .toggle-lg input:checked + .slider::before { transform: translateX(20px); }
 
 /* ─── フッター ─── */
 #footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   padding: 8px 16px;
   font-size: 10px;
-  color: #cbd5e1;
-  text-align: center;
-  border-top: 1px solid #f1f5f9;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 6px;
+}
+
+.footer-icon {
+  font-size: 12px;
+  color: #94a3b8;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }

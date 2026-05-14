@@ -49,13 +49,15 @@ function saveSettings(settings) {
 // ─── ルール行を生成してコンテナに追加 ───
 function buildRuleRows(rules, container, settings) {
   rules.forEach((meta) => {
-    const enabled = settings.rules[meta.id] !== false;
+    const enabled    = settings.rules[meta.id] !== false;
+    const iconName   = meta.severity === "error" ? "dangerous" : "warning";
+    const iconClass  = meta.severity === "error" ? "error-icon" : "warning-icon";
     const row = document.createElement("div");
     row.className = "rule-row" + (enabled ? "" : " rule-off");
     row.dataset.id = meta.id;
     row.innerHTML = `
       <div class="rule-info">
-        <span class="rule-badge">${meta.severity === "error" ? "⛔" : "⚠️"}</span>
+        <span class="material-symbols-outlined rule-badge ${iconClass}">${iconName}</span>
         <span class="rule-label">${meta.label}</span>
       </div>
       <label class="toggle">
@@ -75,10 +77,12 @@ function buildRuleRows(rules, container, settings) {
 
 // ─── マスターUIの更新 ───
 function updateMasterUI(enabled) {
-  const section  = document.getElementById("master-section");
-  const text     = document.getElementById("master-status-text");
-  const sub      = document.getElementById("master-status-sub");
+  const section = document.getElementById("master-section");
+  const icon    = document.getElementById("master-icon");
+  const text    = document.getElementById("master-status-text");
+  const sub     = document.getElementById("master-status-sub");
   section.classList.toggle("disabled", !enabled);
+  if (icon) icon.textContent = enabled ? "verified_user" : "gpp_bad";
   text.textContent = enabled ? "保護中" : "停止中";
   sub.textContent  = enabled ? "AIへの送信前に検査します" : "検査は無効です";
 }
@@ -111,8 +115,8 @@ function updateDetailLabel(isOpen, offCount) {
     label.textContent = "詳細設定を閉じる";
     return;
   }
-  const disabledNote = offCount > 0 ? `・${offCount}件 OFF` : "";
-  label.textContent = `詳細設定（${SECONDARY_RULES.length}件${disabledNote}）`;
+  const disabledNote = offCount > 0 ? `（${offCount}件 OFF）` : "";
+  label.textContent = `詳細設定${disabledNote}`;
 }
 
 // ─── 初期レンダリング ───

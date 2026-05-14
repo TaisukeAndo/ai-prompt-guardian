@@ -5,7 +5,8 @@
  * 設計方針:
  *  - attachInterceptor() はページ読み込み時に必ず実行（ボタン検出を条件にしない）
  *  - ボタン検出は「専用セレクタ → 汎用フォールバック」の2段階
- *  - テキスト取得は「専用セレクタ → アクティブ要素」の2段階
+ *  - 再送信時は DOM を再検索（React 再レンダリングによるステール参照を回避）
+ *  - Enter キーの bypass は button.click() を優先（ProseMirror との互換性向上）
  */
 
 // ─── サービスごとのセレクタ候補 ───
@@ -27,13 +28,37 @@ const SERVICE_CONFIGS = [
   },
   {
     host: "claude.ai",
-    textSelectors: [".ProseMirror", '[contenteditable="true"][data-testid]', '[contenteditable="true"]'],
-    submitSelectors: ['button[aria-label="Send message"]', 'button[aria-label="Send Message"]', 'button[data-testid="send-button"]'],
+    textSelectors: [
+      ".ProseMirror",
+      '[contenteditable="true"]',
+      '[role="textbox"]',
+    ],
+    submitSelectors: [
+      'button[aria-label="Send message"]',
+      'button[aria-label="Send Message"]',
+      'button[aria-label="メッセージを送信"]',
+      'button[data-testid="send-button"]',
+      'button[data-testid="composer-submit-button"]',
+      '[role="button"][aria-label="Send message"]',
+      '[role="button"][aria-label="Send Message"]',
+    ],
   },
   {
     host: "copilot.microsoft.com",
-    textSelectors: ["#userInput", "textarea", '[contenteditable="true"]'],
-    submitSelectors: ['button[aria-label="Submit"]', 'button[aria-label="Send"]'],
+    textSelectors: [
+      'textarea',
+      'div[contenteditable="true"]',
+      '[role="textbox"]',
+    ],
+    submitSelectors: [
+      'button[aria-label="Submit"]',
+      'button[aria-label="Send"]',
+      'button[aria-label="送信"]',
+      'button[type="submit"]',
+      'button[data-testid="submit-button"]',
+      '[role="button"][aria-label="Submit"]',
+      '[role="button"][aria-label="Send"]',
+    ],
   },
 ];
 
@@ -41,33 +66,55 @@ function getCurrentConfig() {
   return SERVICE_CONFIGS.find((c) => location.hostname.includes(c.host));
 }
 
-// ─── ボタン検出（専用セレクタ → 汎用フォールバック）───
+// ─── ボタン検出（クリックイベントから: 専用セレクタ → 汎用フォールバック）───
 function findSubmitButton(target, config) {
-  // 専用セレクタで検索
   for (const sel of config.submitSelectors) {
     const btn = target.closest(sel);
     if (btn) return btn;
   }
 
-  // 汎用フォールバック: aria-label / data-testid にsend/送信/submitを含むボタン
-  const btn = target.closest("button");
+  // button または role="button" を探す
+  const btn = target.closest("button") || target.closest('[role="button"]');
   if (!btn) return null;
 
   const ariaLabel = (btn.getAttribute("aria-label") || "").toLowerCase();
   const testId    = (btn.dataset.testid || "").toLowerCase();
+  const title     = (btn.getAttribute("title") || "").toLowerCase();
   const isSendLike =
     ariaLabel.includes("send") ||
     ariaLabel.includes("送信") ||
     ariaLabel.includes("submit") ||
     testId.includes("send") ||
-    testId.includes("submit");
+    testId.includes("submit") ||
+    title.includes("send") ||
+    title.includes("送信") ||
+    btn.type === "submit";
 
   return isSendLike ? btn : null;
 }
 
+// ─── ボタン再検索（ダイアログ後: React 再レンダリングでステール参照を回避）───
+function findFreshSubmitButton(config) {
+  for (const sel of config.submitSelectors) {
+    const btn = document.querySelector(sel);
+    if (btn) return btn;
+  }
+  for (const btn of document.querySelectorAll('button, [role="button"]')) {
+    const ariaLabel = (btn.getAttribute("aria-label") || "").toLowerCase();
+    const testId    = (btn.dataset.testid || "").toLowerCase();
+    const title     = (btn.getAttribute("title") || "").toLowerCase();
+    if (
+      ariaLabel.includes("send") || ariaLabel.includes("送信") || ariaLabel.includes("submit") ||
+      testId.includes("send")    || testId.includes("submit") ||
+      title.includes("send")     || title.includes("送信") ||
+      btn.type === "submit"
+    ) return btn;
+  }
+  return null;
+}
+
 // ─── テキスト取得（専用セレクタ → アクティブ要素）───
 function getPromptText(config) {
-  // 専用セレクタで検索
   for (const sel of config.textSelectors) {
     const el = document.querySelector(sel);
     if (!el) continue;
@@ -75,7 +122,6 @@ function getPromptText(config) {
     if (text) return text;
   }
 
-  // フォールバック: フォーカス中の入力要素
   const active = document.activeElement;
   if (active && (active.isContentEditable || active.tagName === "TEXTAREA" || active.tagName === "INPUT")) {
     const text = (active.innerText || active.value || "").trim();
@@ -95,9 +141,11 @@ function showWarningDialog(result, callbacks) {
   const findingsHTML = result.findings
     .map((f) => `
       <div class="apg-finding apg-${f.severity}">
-        <span class="apg-badge">${f.severity === "error" ? "⛔" : "⚠️"}</span>
-        <strong>${f.label}</strong>
-        <span class="apg-sample">${f.matches.map(redactText).join("、")}</span>
+        <span class="apg-badge">${f.severity === "error" ? "🔴" : "🟡"}</span>
+        <div>
+          <strong>${f.label}</strong>
+          <span class="apg-sample">${f.matches.map(redactText).join("、")}</span>
+        </div>
       </div>`)
     .join("");
 
@@ -107,14 +155,16 @@ function showWarningDialog(result, callbacks) {
     <div id="apg-overlay"></div>
     <div id="apg-modal">
       <div id="apg-header">
-        <span id="apg-icon">${hasError ? "⛔" : "⚠️"}</span>
+        <span id="apg-icon">${hasError ? "🔒" : "⚠️"}</span>
         <span id="apg-title">送信前に確認してください</span>
       </div>
-      <p id="apg-desc">プロンプト内に以下の情報が含まれている可能性があります：</p>
-      <div id="apg-findings">${findingsHTML}</div>
+      <div id="apg-body">
+        <p id="apg-desc">プロンプト内に以下の情報が含まれている可能性があります：</p>
+        <div id="apg-findings">${findingsHTML}</div>
+      </div>
       <div id="apg-actions">
         <button id="apg-cancel">キャンセル</button>
-        <button id="apg-mask">🔒 情報を隠して送信</button>
+        <button id="apg-mask">🔒 マスクして送信</button>
         ${!hasError ? '<button id="apg-send">このまま送信</button>' : ""}
       </div>
     </div>
@@ -158,8 +208,8 @@ function injectText(config, text) {
 
 // ─── インターセプタ本体 ───
 function attachInterceptor(config) {
-  let bypassClick    = false;
-  let bypassKeydown  = false;
+  let bypassClick   = false;
+  let bypassKeydown = false;
 
   console.info("[APG] インターセプタ起動:", config.host);
 
@@ -194,14 +244,16 @@ function attachInterceptor(config) {
 
     handleDetection(text, () => {
       bypassClick = true;
-      btn.click();
+      // React が再レンダリングしてもボタンを取得できるよう DOM を再検索する
+      const freshBtn = findFreshSubmitButton(config) || btn;
+      freshBtn.click();
     });
   }, true);
 
   // ─── Enter キー ───
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.shiftKey) return;
-    if (e.isComposing) return; // IME変換確定のEnterは無視
+    if (e.isComposing) return; // IME 変換確定は無視
 
     const active = document.activeElement;
     if (!active) return;
@@ -209,7 +261,6 @@ function attachInterceptor(config) {
     const isInputArea = config.textSelectors.some(
       (sel) => active.matches?.(sel) || !!active.closest?.(sel)
     );
-    // フォールバック: isContentEditable / textarea でもOK
     const isGenericInput = active.isContentEditable || active.tagName === "TEXTAREA";
     if (!isInputArea && !isGenericInput) return;
 
@@ -223,54 +274,85 @@ function attachInterceptor(config) {
 
     handleDetection(text, () => {
       bypassKeydown = true;
-      active.focus();
-      active.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, composed: true })
-      );
+      // ボタンクリックを優先（ProseMirror への synthetic keydown より確実）
+      const submitBtn = findFreshSubmitButton(config);
+      if (submitBtn) {
+        bypassClick = true;
+        submitBtn.click();
+      } else {
+        // フォールバック: Enter キー再送出
+        active.focus();
+        active.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, composed: true })
+        );
+      }
     });
   }, true);
 }
 
-// ─── スタイル ───
+// ─── ダイアログスタイル ───
 function injectStyles() {
   if (document.getElementById("apg-styles")) return;
   const style = document.createElement("style");
   style.id = "apg-styles";
   style.textContent = `
-    #apg-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2147483646; }
+    #apg-overlay {
+      position:fixed;inset:0;
+      background:rgba(12,26,46,.65);
+      backdrop-filter:blur(2px);
+      z-index:2147483646;
+    }
     #apg-modal {
       position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      background:#fff;border-radius:12px;padding:24px;width:420px;max-width:90vw;
-      box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:2147483647;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;color:#1a1a1a;
+      background:#fff;border-radius:14px;width:440px;max-width:92vw;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:2147483647;overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Segoe UI",sans-serif;
+      font-size:14px;color:#1e293b;
     }
-    #apg-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-    #apg-icon{font-size:22px;}
-    #apg-title{font-size:16px;font-weight:700;}
-    #apg-desc{margin:0 0 12px;color:#555;}
-    #apg-findings{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-    .apg-finding{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;line-height:1.4;}
-    .apg-finding.apg-error  {background:#fff0f0;border:1px solid #fcc;}
-    .apg-finding.apg-warning{background:#fffbe6;border:1px solid #ffe58f;}
-    .apg-badge{font-size:16px;}
-    .apg-sample{color:#888;font-size:12px;display:block;margin-top:2px;}
-    #apg-actions{display:flex;gap:10px;justify-content:flex-end;}
-    #apg-cancel{padding:8px 16px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px;}
-    #apg-cancel:hover{background:#f3f4f6;}
-    #apg-mask{padding:8px 16px;border-radius:8px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:14px;font-weight:600;}
-    #apg-mask:hover{background:#2563eb;}
-    #apg-send{padding:8px 16px;border-radius:8px;border:none;background:#f59e0b;color:#fff;cursor:pointer;font-size:14px;font-weight:600;}
+    #apg-header {
+      display:flex;align-items:center;gap:10px;
+      padding:16px 20px;
+      background:linear-gradient(135deg,#0c1a2e 0%,#1a3a6e 100%);color:#fff;
+    }
+    #apg-icon{font-size:20px;}
+    #apg-title{font-size:15px;font-weight:700;}
+    #apg-body{padding:16px 20px 4px;}
+    #apg-desc{margin-bottom:12px;color:#475569;font-size:13px;}
+    #apg-findings{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+    .apg-finding{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;line-height:1.5;}
+    .apg-finding.apg-error  {background:#fff1f2;border:1px solid #fecdd3;}
+    .apg-finding.apg-warning{background:#fffbeb;border:1px solid #fde68a;}
+    .apg-badge{font-size:15px;flex-shrink:0;margin-top:2px;}
+    .apg-finding strong{color:#1e293b;font-weight:600;font-size:13px;}
+    .apg-sample{color:#94a3b8;font-size:11px;display:block;margin-top:2px;font-family:monospace;}
+    #apg-actions{
+      display:flex;gap:8px;justify-content:flex-end;
+      padding:12px 20px 16px;border-top:1px solid #f1f5f9;background:#f8fafc;
+    }
+    #apg-cancel{
+      padding:8px 16px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;
+      cursor:pointer;font-size:13px;color:#475569;font-family:inherit;transition:background .15s;
+    }
+    #apg-cancel:hover{background:#f1f5f9;}
+    #apg-mask{
+      padding:8px 16px;border-radius:8px;border:none;background:#2563eb;color:#fff;
+      cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:background .15s;
+    }
+    #apg-mask:hover{background:#1d4ed8;}
+    #apg-send{
+      padding:8px 16px;border-radius:8px;border:none;background:#f59e0b;color:#fff;
+      cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:background .15s;
+    }
     #apg-send:hover{background:#d97706;}
   `;
   document.head.appendChild(style);
 }
 
-// ─── 初期化（ボタンの有無に関係なく必ず実行）───
+// ─── 初期化 ───
 (function init() {
   const config = getCurrentConfig();
   if (!config) return;
 
-  // SPAはDOMが遅延構築されるため、body が存在すれば即時・なければ待機
   if (document.body) {
     attachInterceptor(config);
   } else {
