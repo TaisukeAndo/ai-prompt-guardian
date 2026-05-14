@@ -1,12 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="sg" x1="64" y1="17" x2="64" y2="108" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3b82f6"/>
-      <stop offset="100%" stop-color="#1d4ed8"/>
-    </linearGradient>
-  </defs>
-  <rect width="128" height="128" rx="24" fill="#0f172a"/>
-  <path d="M64 17 L97 29 L97 63 Q97 88 77 96 L64 108 L51 96 Q31 88 31 63 L31 29 Z" fill="url(#sg)"/>
-  <path d="M46 64 L59 77 L82 50" stroke="white" stroke-width="7.5"
-        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Background -->
+  <rect width="128" height="128" rx="20" fill="#0f172a"/>
+
+  <!-- Chat bubble body -->
+  <rect x="18" y="14" width="92" height="68" rx="13" fill="#2563eb"/>
+
+  <!-- Shield extension (symmetric, centered) -->
+  <polygon points="36,82 92,82 94,92 76,108 64,115 52,108 34,92" fill="#2563eb"/>
+  <rect x="34" y="79" width="60" height="6" fill="#2563eb"/>
+
+  <!-- Text lines (navy cutout = protected text metaphor) -->
+  <rect x="34" y="33.5" width="42" height="7" rx="3.5" fill="#0f172a"/>
+  <rect x="34" y="47.5" width="58" height="7" rx="3.5" fill="#0f172a"/>
+  <rect x="34" y="61.5" width="30" height="7" rx="3.5" fill="#0f172a"/>
 </svg>
