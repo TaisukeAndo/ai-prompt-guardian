@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>AI Prompt Guardian</title>
+  <title>Prompt Shield</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
   <link rel="stylesheet" href="popup.css" />
@@ -10,10 +10,10 @@
 <body>
 
   <div id="header">
-    <span class="material-symbols-outlined" id="header-icon">security</span>
+    <img src="../../icons/icon48.png" id="header-icon" alt="Prompt Shield" />
     <div id="header-text">
-      <span id="title">AI Prompt Guardian</span>
-      <span id="subtitle">プロンプト情報漏洩対策</span>
+      <span id="title">Prompt Shield</span>
+      <span id="subtitle">AI Prompt Security</span>
     </div>
     <span id="version">v0.1.0</span>
   </div>
@@ -23,8 +23,8 @@
     <div id="master-info">
       <span class="material-symbols-outlined" id="master-icon">verified_user</span>
       <div id="master-label">
-        <span id="master-status-text">保護中</span>
-        <span id="master-status-sub">AIへの送信前に検査します</span>
+        <span id="master-status-text">Protected</span>
+        <span id="master-status-sub">Scanning prompts before send</span>
       </div>
     </div>
     <label class="toggle toggle-lg">
@@ -35,7 +35,7 @@
 
   <!-- 重要ルール（常時表示） -->
   <div id="rules-section">
-    <div class="section-title">重要な検知ルール</div>
+    <div class="section-title">Critical Rules</div>
     <div id="rule-list-primary"></div>
   </div>
 
@@ -44,19 +44,19 @@
     <button id="detail-toggle" aria-expanded="false">
       <div id="detail-toggle-left">
         <span class="material-symbols-outlined" id="detail-icon">tune</span>
-        <span id="detail-label">詳細設定</span>
+        <span id="detail-label">Advanced</span>
       </div>
       <span class="material-symbols-outlined" id="detail-chevron">expand_more</span>
     </button>
     <div id="detail-body">
-      <div class="section-title">その他の検知ルール</div>
+      <div class="section-title">Additional Rules</div>
       <div id="rule-list-secondary"></div>
     </div>
   </div>
 
   <div id="footer">
     <span class="material-symbols-outlined footer-icon">lock</span>
-    ローカル処理のみ — データは外部送信されません
+    Local processing only — no data is transmitted
   </div>
 
   <script src="popup.js"></script>

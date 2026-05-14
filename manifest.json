@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Prompt Guardian",
+  "name": "Prompt Shield",
   "version": "0.1.0",
-  "description": "AIサービスへ送るプロンプト・画像に個人情報・機密情報が含まれていないか検知します",
+  "description": "Detects and masks personal information and secrets in AI prompts before sending.",
 
   "permissions": [
     "storage",

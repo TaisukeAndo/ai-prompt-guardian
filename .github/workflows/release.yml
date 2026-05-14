@@ -33,7 +33,7 @@ jobs:
       # ─── 拡張機能の zip を作成 ───
       - name: Build zip
         run: |
-          zip -r ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip . \
+          zip -r prompt-shield-${{ steps.version.outputs.VERSION }}.zip . \
             --exclude ".git/*" \
             --exclude ".github/*" \
             --exclude "*.md" \
@@ -44,7 +44,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "v${{ steps.version.outputs.VERSION }}"
-          files: ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip
+          files: prompt-shield-${{ steps.version.outputs.VERSION }}.zip
           generate_release_notes: true  # コミット履歴からリリースノートを自動生成
 
       # ─── Chrome Web Store にアップロード（シークレット設定後に有効化） ───
@@ -62,5 +62,5 @@ jobs:
       #     client-id: ${{ secrets.CHROME_CLIENT_ID }}
       #     client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
       #     refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
-      #     zip-path: ai-prompt-guardian-${{ steps.version.outputs.VERSION }}.zip
+      #     zip-path: prompt-shield-${{ steps.version.outputs.VERSION }}.zip
       #     publish: true

@@ -132,6 +132,11 @@ function getPromptText(config) {
 }
 
 // ─── 警告ダイアログ ───
+const SHIELD_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="white" fill-opacity="0.9"/>
+  <path d="M9 12l2 2 4-4" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 function showWarningDialog(result, callbacks) {
   const { onSend, onMask } = callbacks;
   document.getElementById("apg-dialog")?.remove();
@@ -141,10 +146,10 @@ function showWarningDialog(result, callbacks) {
   const findingsHTML = result.findings
     .map((f) => `
       <div class="apg-finding apg-${f.severity}">
-        <span class="apg-badge">${f.severity === "error" ? "🔴" : "🟡"}</span>
+        <span class="apg-dot apg-dot-${f.severity}">!</span>
         <div>
           <strong>${f.label}</strong>
-          <span class="apg-sample">${f.matches.map(redactText).join("、")}</span>
+          <span class="apg-sample">${f.matches.map(redactText).join(", ")}</span>
         </div>
       </div>`)
     .join("");
@@ -155,17 +160,17 @@ function showWarningDialog(result, callbacks) {
     <div id="apg-overlay"></div>
     <div id="apg-modal">
       <div id="apg-header">
-        <span id="apg-icon">${hasError ? "🔒" : "⚠️"}</span>
-        <span id="apg-title">送信前に確認してください</span>
+        <span id="apg-icon">${SHIELD_SVG}</span>
+        <span id="apg-title">Review before sending</span>
       </div>
       <div id="apg-body">
-        <p id="apg-desc">プロンプト内に以下の情報が含まれている可能性があります：</p>
+        <p id="apg-desc">Sensitive information may be included in your prompt:</p>
         <div id="apg-findings">${findingsHTML}</div>
       </div>
       <div id="apg-actions">
-        <button id="apg-cancel">キャンセル</button>
-        <button id="apg-mask">🔒 マスクして送信</button>
-        ${!hasError ? '<button id="apg-send">このまま送信</button>' : ""}
+        <button id="apg-cancel">Cancel</button>
+        <button id="apg-mask">Mask &amp; Send</button>
+        ${!hasError ? '<button id="apg-send">Send Anyway</button>' : ""}
       </div>
     </div>
   `;
@@ -299,33 +304,33 @@ function injectStyles() {
   const style = document.createElement("style");
   style.id = "apg-styles";
   style.textContent = `
-    #apg-overlay {
-      position:fixed;inset:0;
-      background:rgba(12,26,46,.65);
-      backdrop-filter:blur(2px);
-      z-index:2147483646;
-    }
-    #apg-modal {
+    #apg-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(3px);z-index:2147483646;}
+    #apg-modal{
       position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      background:#fff;border-radius:14px;width:440px;max-width:92vw;
-      box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:2147483647;overflow:hidden;
-      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Segoe UI",sans-serif;
-      font-size:14px;color:#1e293b;
+      background:#fff;border-radius:16px;width:440px;max-width:92vw;
+      box-shadow:0 24px 64px rgba(15,23,42,.3);z-index:2147483647;overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;color:#1e293b;
     }
-    #apg-header {
+    #apg-header{
       display:flex;align-items:center;gap:10px;
-      padding:16px 20px;
-      background:linear-gradient(135deg,#0c1a2e 0%,#1a3a6e 100%);color:#fff;
+      padding:15px 20px;
+      background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);color:#fff;
     }
-    #apg-icon{font-size:20px;}
-    #apg-title{font-size:15px;font-weight:700;}
+    #apg-icon{display:flex;align-items:center;}
+    #apg-title{font-size:15px;font-weight:700;letter-spacing:.01em;}
     #apg-body{padding:16px 20px 4px;}
-    #apg-desc{margin-bottom:12px;color:#475569;font-size:13px;}
+    #apg-desc{margin-bottom:12px;color:#64748b;font-size:13px;}
     #apg-findings{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
-    .apg-finding{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;line-height:1.5;}
-    .apg-finding.apg-error  {background:#fff1f2;border:1px solid #fecdd3;}
+    .apg-finding{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;line-height:1.5;}
+    .apg-finding.apg-error  {background:#fef2f2;border:1px solid #fecaca;}
     .apg-finding.apg-warning{background:#fffbeb;border:1px solid #fde68a;}
-    .apg-badge{font-size:15px;flex-shrink:0;margin-top:2px;}
+    .apg-dot{
+      width:20px;height:20px;border-radius:50%;
+      display:inline-flex;align-items:center;justify-content:center;
+      color:#fff;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;
+    }
+    .apg-dot-error{background:#ef4444;}
+    .apg-dot-warning{background:#f59e0b;}
     .apg-finding strong{color:#1e293b;font-weight:600;font-size:13px;}
     .apg-sample{color:#94a3b8;font-size:11px;display:block;margin-top:2px;font-family:monospace;}
     #apg-actions{
@@ -333,20 +338,20 @@ function injectStyles() {
       padding:12px 20px 16px;border-top:1px solid #f1f5f9;background:#f8fafc;
     }
     #apg-cancel{
-      padding:8px 16px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;
-      cursor:pointer;font-size:13px;color:#475569;font-family:inherit;transition:background .15s;
+      padding:8px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;
+      cursor:pointer;font-size:13px;color:#475569;font-family:inherit;font-weight:500;transition:background .15s;
     }
-    #apg-cancel:hover{background:#f1f5f9;}
+    #apg-cancel:hover{background:#f8fafc;}
     #apg-mask{
       padding:8px 16px;border-radius:8px;border:none;background:#2563eb;color:#fff;
       cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:background .15s;
     }
     #apg-mask:hover{background:#1d4ed8;}
     #apg-send{
-      padding:8px 16px;border-radius:8px;border:none;background:#f59e0b;color:#fff;
-      cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:background .15s;
+      padding:8px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;
+      cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:background .15s;
     }
-    #apg-send:hover{background:#d97706;}
+    #apg-send:hover{background:#f8fafc;}
   `;
   document.head.appendChild(style);
 }

@@ -1,8 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Material Symbols 共通設定 */
+/* ─── Material Symbols 共通 ─── */
 .material-symbols-outlined {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -23,16 +23,16 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 16px;
-  background: linear-gradient(135deg, #0c1a2e 0%, #1a3a6e 100%);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
   color: #fff;
 }
 
 #header-icon {
-  font-size: 26px;
-  color: #93c5fd;
-  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
+  border-radius: 6px;
 }
 
 #header-text {
@@ -47,23 +47,21 @@ body {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  white-space: nowrap;
 }
 
 #subtitle {
   font-size: 10px;
   color: #93c5fd;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 #version {
   font-size: 10px;
   color: #64748b;
-  background: rgba(255,255,255,0.1);
-  padding: 2px 6px;
+  background: rgba(255,255,255,0.08);
+  padding: 2px 7px;
   border-radius: 4px;
   flex-shrink: 0;
-  white-space: nowrap;
 }
 
 /* ─── マスタートグル ─── */
@@ -72,8 +70,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #f0fdf4;
-  border-bottom: 2px solid #bbf7d0;
+  background: #eff6ff;
+  border-bottom: 2px solid #bfdbfe;
   transition: background 0.25s, border-color 0.25s;
 }
 
@@ -89,14 +87,15 @@ body {
 }
 
 #master-icon {
-  font-size: 30px;
-  color: #16a34a;
+  font-size: 28px;
+  color: #2563eb;
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   transition: color 0.25s;
 }
 
 #master-section.disabled #master-icon {
   color: #94a3b8;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }
 
 #master-label {
@@ -108,7 +107,7 @@ body {
 #master-status-text {
   font-size: 14px;
   font-weight: 700;
-  color: #16a34a;
+  color: #2563eb;
   transition: color 0.25s;
 }
 
@@ -146,17 +145,9 @@ body {
   transition: background 0.15s;
 }
 
-.rule-row:last-child {
-  border-bottom: none;
-}
-
-.rule-row:hover {
-  background: #f8fafc;
-}
-
-.rule-row.rule-off {
-  opacity: 0.4;
-}
+.rule-row:last-child { border-bottom: none; }
+.rule-row:hover { background: #f8fafc; }
+.rule-row.rule-off { opacity: 0.4; }
 
 .rule-info {
   display: flex;
@@ -167,17 +158,12 @@ body {
 .rule-badge {
   font-size: 17px;
   flex-shrink: 0;
+  /* FILL=0 で outlined、色は CSS で制御 */
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
-.error-icon {
-  color: #dc2626;
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-}
-
-.warning-icon {
-  color: #d97706;
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-}
+.error-icon  { color: #ef4444; }
+.warning-icon { color: #f59e0b; }
 
 .rule-label {
   font-size: 12px;
@@ -205,12 +191,9 @@ body {
   color: #475569;
   font-weight: 600;
   transition: background 0.15s;
-  letter-spacing: 0.01em;
 }
 
-#detail-toggle:hover {
-  background: #f1f5f9;
-}
+#detail-toggle:hover { background: #f1f5f9; }
 
 #detail-toggle-left {
   display: flex;
@@ -221,7 +204,7 @@ body {
 #detail-icon {
   font-size: 16px;
   color: #94a3b8;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
 }
 
 #detail-chevron {
@@ -242,9 +225,7 @@ body {
   transition: max-height 0.25s ease;
 }
 
-#detail-body.open {
-  max-height: 400px;
-}
+#detail-body.open { max-height: 400px; }
 
 /* ─── トグルスイッチ ─── */
 .toggle {
@@ -255,12 +236,7 @@ body {
   flex-shrink: 0;
 }
 
-.toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-}
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 
 .slider {
   position: absolute;
@@ -284,20 +260,11 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.toggle input:checked + .slider {
-  background: #16a34a;
-}
+.toggle input:checked + .slider { background: #2563eb; }
+.toggle input:checked + .slider::before { transform: translateX(16px); }
+.toggle input:disabled + .slider { cursor: not-allowed; opacity: 0.6; }
 
-.toggle input:checked + .slider::before {
-  transform: translateX(16px);
-}
-
-.toggle input:disabled + .slider {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* 大きいトグル（マスター用） */
+/* マスター用大トグル */
 .toggle-lg { width: 48px; height: 28px; }
 .toggle-lg .slider::before { height: 20px; width: 20px; left: 4px; bottom: 4px; }
 .toggle-lg input:checked + .slider::before { transform: translateX(20px); }
@@ -307,7 +274,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   padding: 8px 16px;
   font-size: 10px;
   color: #94a3b8;

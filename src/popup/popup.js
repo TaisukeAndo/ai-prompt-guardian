@@ -1,24 +1,22 @@
 /**
  * popup.js
- * 設定の読み込み・保存・UIレンダリングを担う。
- * error ルールは常時表示、warning ルールは詳細設定として折りたたむ。
  */
 
 const RULE_META = [
-  // ─── 常時表示（重要） ───
-  { id: "phone_jp",         label: "電話番号（日本）",      severity: "error" },
-  { id: "birthday",         label: "生年月日",              severity: "error" },
-  { id: "credit_card",      label: "クレジットカード番号",   severity: "error" },
-  { id: "aws_access_key",   label: "AWS アクセスキー",       severity: "error" },
-  { id: "github_token",     label: "GitHub トークン",        severity: "error" },
-  { id: "slack_token",      label: "Slack トークン",         severity: "error" },
-  { id: "password_in_text", label: "パスワード記載",         severity: "error" },
-  // ─── 詳細設定（折りたたみ） ───
-  { id: "email",            label: "メールアドレス",          severity: "warning" },
-  { id: "postal_code_jp",   label: "郵便番号",               severity: "warning" },
-  { id: "name_jp",          label: "氏名（様・さん付き）",    severity: "warning" },
-  { id: "bank_account",     label: "銀行口座番号",            severity: "warning" },
-  { id: "api_key_generic",  label: "API キー（汎用）",        severity: "warning" },
+  // ─── Critical (always visible) ───
+  { id: "phone_jp",         label: "Phone number (JP)",      severity: "error" },
+  { id: "birthday",         label: "Date of birth",          severity: "error" },
+  { id: "credit_card",      label: "Credit card number",     severity: "error" },
+  { id: "aws_access_key",   label: "AWS access key",         severity: "error" },
+  { id: "github_token",     label: "GitHub token",           severity: "error" },
+  { id: "slack_token",      label: "Slack token",            severity: "error" },
+  { id: "password_in_text", label: "Password in text",       severity: "error" },
+  // ─── Advanced (collapsible) ───
+  { id: "email",            label: "Email address",          severity: "warning" },
+  { id: "postal_code_jp",   label: "Postal code (JP)",       severity: "warning" },
+  { id: "name_jp",          label: "Japanese name (honorific)", severity: "warning" },
+  { id: "bank_account",     label: "Bank account number",    severity: "warning" },
+  { id: "api_key_generic",  label: "Generic API key",        severity: "warning" },
 ];
 
 const PRIMARY_RULES   = RULE_META.filter((r) => r.severity === "error");
@@ -46,12 +44,12 @@ function saveSettings(settings) {
   chrome.storage.local.set({ [STORAGE_KEY]: settings });
 }
 
-// ─── ルール行を生成してコンテナに追加 ───
+// ─── Rule rows ───
 function buildRuleRows(rules, container, settings) {
   rules.forEach((meta) => {
-    const enabled    = settings.rules[meta.id] !== false;
-    const iconName   = meta.severity === "error" ? "dangerous" : "warning";
-    const iconClass  = meta.severity === "error" ? "error-icon" : "warning-icon";
+    const enabled   = settings.rules[meta.id] !== false;
+    const iconName  = meta.severity === "error" ? "dangerous" : "warning";
+    const iconClass = meta.severity === "error" ? "error-icon" : "warning-icon";
     const row = document.createElement("div");
     row.className = "rule-row" + (enabled ? "" : " rule-off");
     row.dataset.id = meta.id;
@@ -75,7 +73,7 @@ function buildRuleRows(rules, container, settings) {
   });
 }
 
-// ─── マスターUIの更新 ───
+// ─── Master UI ───
 function updateMasterUI(enabled) {
   const section = document.getElementById("master-section");
   const icon    = document.getElementById("master-icon");
@@ -83,8 +81,8 @@ function updateMasterUI(enabled) {
   const sub     = document.getElementById("master-status-sub");
   section.classList.toggle("disabled", !enabled);
   if (icon) icon.textContent = enabled ? "verified_user" : "gpp_bad";
-  text.textContent = enabled ? "保護中" : "停止中";
-  sub.textContent  = enabled ? "AIへの送信前に検査します" : "検査は無効です";
+  text.textContent = enabled ? "Protected" : "Disabled";
+  sub.textContent  = enabled ? "Scanning prompts before send" : "Inspection is off";
 }
 
 function setAllTogglesDisabled(disabled) {
@@ -93,7 +91,7 @@ function setAllTogglesDisabled(disabled) {
   });
 }
 
-// ─── 詳細設定の開閉 ───
+// ─── Detail toggle ───
 function initDetailToggle() {
   const btn  = document.getElementById("detail-toggle");
   const body = document.getElementById("detail-body");
@@ -101,7 +99,6 @@ function initDetailToggle() {
   btn.addEventListener("click", () => {
     const isOpen = body.classList.toggle("open");
     btn.setAttribute("aria-expanded", isOpen);
-
     const offCount = SECONDARY_RULES.filter(
       (r) => document.querySelector(`.rule-row[data-id="${r.id}"] input`)?.checked === false
     ).length;
@@ -111,17 +108,13 @@ function initDetailToggle() {
 
 function updateDetailLabel(isOpen, offCount) {
   const label = document.getElementById("detail-label");
-  if (isOpen) {
-    label.textContent = "詳細設定を閉じる";
-    return;
-  }
-  const disabledNote = offCount > 0 ? `（${offCount}件 OFF）` : "";
-  label.textContent = `詳細設定${disabledNote}`;
+  if (isOpen) { label.textContent = "Close Advanced"; return; }
+  const note = offCount > 0 ? ` (${offCount} off)` : "";
+  label.textContent = `Advanced${note}`;
 }
 
-// ─── 初期レンダリング ───
+// ─── Render ───
 function render(settings) {
-  // マスタートグル
   const masterToggle = document.getElementById("master-toggle");
   masterToggle.checked = settings.enabled;
   updateMasterUI(settings.enabled);
@@ -132,16 +125,11 @@ function render(settings) {
     saveSettings(settings);
   });
 
-  // 重要ルール（常時表示）
-  buildRuleRows(PRIMARY_RULES, document.getElementById("rule-list-primary"), settings);
-
-  // 詳細設定（折りたたみ）
+  buildRuleRows(PRIMARY_RULES,   document.getElementById("rule-list-primary"),   settings);
   buildRuleRows(SECONDARY_RULES, document.getElementById("rule-list-secondary"), settings);
 
-  // 詳細ラベルの初期テキスト
   const offCount = SECONDARY_RULES.filter((r) => settings.rules[r.id] === false).length;
   updateDetailLabel(false, offCount);
-
   initDetailToggle();
 }
 
